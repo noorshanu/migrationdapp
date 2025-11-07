@@ -18,6 +18,7 @@ function App() {
   const wagmiConfig = useConfig()
   const chainId = useChainId()
   const FALLBACK_MIGRATE_GAS = 400000n
+  const TARGET_CHAIN_ID = 11155111 // Sepolia
 
   const [contractAddress] = useState('0xdb352e55DaAd68B632554410F2D392263fF22b06')
   const [amount, setAmount] = useState('')
@@ -33,6 +34,7 @@ function App() {
     address: contractAddress || undefined,
     abi: MIGRATION_ABI,
     functionName: 'tokenA',
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(contractAddress) }
   })
 
@@ -40,6 +42,7 @@ function App() {
     address: contractAddress || undefined,
     abi: MIGRATION_ABI,
     functionName: 'tokenB',
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(contractAddress) }
   })
 
@@ -47,6 +50,7 @@ function App() {
     address: contractAddress || undefined,
     abi: MIGRATION_ABI,
     functionName: 'contractBalances',
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(contractAddress) }
   })
 
@@ -54,6 +58,7 @@ function App() {
     address: tokenAAddress,
     abi: ERC20_ABI,
     functionName: 'decimals',
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenAAddress) }
   })
 
@@ -61,6 +66,7 @@ function App() {
     address: tokenAAddress,
     abi: ERC20_ABI,
     functionName: 'symbol',
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenAAddress) }
   })
 
@@ -68,6 +74,7 @@ function App() {
     address: tokenBAddress,
     abi: ERC20_ABI,
     functionName: 'decimals',
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenBAddress) }
   })
 
@@ -75,6 +82,7 @@ function App() {
     address: tokenBAddress,
     abi: ERC20_ABI,
     functionName: 'symbol',
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenBAddress) }
   })
 
@@ -83,6 +91,7 @@ function App() {
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenAAddress && address) }
   })
 
@@ -133,6 +142,7 @@ function App() {
     abi: ERC20_ABI,
     functionName: 'allowance',
     args: address && contractAddress ? [address, contractAddress] : undefined,
+    chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenAAddress && address && contractAddress) }
   })
 
@@ -271,7 +281,7 @@ function App() {
           {exceedsPool ? (
             <div className="text-amber-300">Amount exceeds Token B liquidity in pool. Reduce amount or fund contract.</div>
           ) : null}
-        </div>
+      </div>
       </div>
 
       <Footer />

@@ -3,7 +3,8 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { mainnet, sepolia } from '@reown/appkit/networks'
 
 const projectId = '2f4da7b40d4f371ee01ffcee4851dff2'
-const networks = [mainnet, sepolia]
+// Put Sepolia first so default/public reads happen on Sepolia when no wallet is connected
+const networks = [sepolia, mainnet]
 
 export const wagmiAdapter = new WagmiAdapter({
   projectId,
@@ -13,7 +14,8 @@ export const wagmiAdapter = new WagmiAdapter({
 export const appKit = createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks
+  networks,
+  defaultNetwork: sepolia
 })
 
 // Optional: make available globally for debugging
