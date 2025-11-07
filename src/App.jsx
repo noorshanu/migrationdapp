@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { useAccount, useReadContract, useWriteContract, useConfig, useChainId } from 'wagmi'
 import { waitForTransactionReceipt, simulateContract } from 'wagmi/actions'
@@ -12,6 +12,7 @@ import Navbar from './components/Navbar.jsx'
 import TokenSelector from './components/TokenSelector.jsx'
 import AmountInput from './components/AmountInput.jsx'
 import MigrateAction from './components/MigrateAction.jsx'
+import ApproveAction from './components/ApproveAction.jsx'
 
 function App() {
   const { address, isConnected } = useAccount()
@@ -19,6 +20,22 @@ function App() {
   const chainId = useChainId()
   const FALLBACK_MIGRATE_GAS = 400000n
   const TARGET_CHAIN_ID = 11155111 // Sepolia
+
+  // Debug logging
+  const [debugOpen, setDebugOpen] = useState(true)
+  const [logs, setLogs] = useState([])
+  const jsonReplacer = (key, value) => (typeof value === 'bigint' ? value.toString() : value)
+  const log = useCallback((message, data) => {
+    const time = new Date().toISOString()
+    try {
+      console.log('[MIGRATION]', message, data ?? '')
+      const entry = `${time} | ${message}${data !== undefined ? ' ' + JSON.stringify(data, jsonReplacer) : ''}`
+      setLogs((prev) => [...prev.slice(-400), entry])
+    } catch {
+      console.log('[MIGRATION]', message)
+      setLogs((prev) => [...prev.slice(-400), `${time} | ${message}`])
+    }
+  }, [])
 
   const [contractAddress] = useState('0xdb352e55DaAd68B632554410F2D392263fF22b06')
   const [amount, setAmount] = useState('')
@@ -38,6 +55,9 @@ function App() {
     query: { enabled: Boolean(contractAddress) }
   })
 
+  // Trace important reads when they change
+  useEffect(() => { if (tokenAAddress) log('read tokenA', tokenAAddress) }, [tokenAAddress, log])
+
   const { data: tokenBAddress } = useReadContract({
     address: contractAddress || undefined,
     abi: MIGRATION_ABI,
@@ -45,6 +65,7 @@ function App() {
     chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(contractAddress) }
   })
+  useEffect(() => { if (tokenBAddress) log('read tokenB', tokenBAddress) }, [tokenBAddress, log])
 
   const { data: contractBalances } = useReadContract({
     address: contractAddress || undefined,
@@ -53,6 +74,7 @@ function App() {
     chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(contractAddress) }
   })
+  useEffect(() => { if (contractBalances) log('read contractBalances', contractBalances) }, [contractBalances, log])
 
   const { data: tokenADecimals } = useReadContract({
     address: tokenAAddress,
@@ -61,6 +83,7 @@ function App() {
     chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenAAddress) }
   })
+  useEffect(() => { if (tokenADecimals != null) log('read tokenA decimals', tokenADecimals) }, [tokenADecimals, log])
 
   const { data: tokenASymbol } = useReadContract({
     address: tokenAAddress,
@@ -69,6 +92,7 @@ function App() {
     chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenAAddress) }
   })
+  useEffect(() => { if (tokenASymbol) log('read tokenA symbol', tokenASymbol) }, [tokenASymbol, log])
 
   const { data: tokenBDecimals } = useReadContract({
     address: tokenBAddress,
@@ -77,6 +101,7 @@ function App() {
     chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenBAddress) }
   })
+  useEffect(() => { if (tokenBDecimals != null) log('read tokenB decimals', tokenBDecimals) }, [tokenBDecimals, log])
 
   const { data: tokenBSymbol } = useReadContract({
     address: tokenBAddress,
@@ -85,6 +110,7 @@ function App() {
     chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenBAddress) }
   })
+  useEffect(() => { if (tokenBSymbol) log('read tokenB symbol', tokenBSymbol) }, [tokenBSymbol, log])
 
   const { data: tokenAUserBal } = useReadContract({
     address: tokenAAddress,
@@ -94,6 +120,7 @@ function App() {
     chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenAAddress && address) }
   })
+  useEffect(() => { if (tokenAUserBal != null) log('read user tokenA balance', tokenAUserBal) }, [tokenAUserBal, log])
 
   const amountWei = useMemo(() => {
     try {
@@ -145,82 +172,133 @@ function App() {
     chainId: TARGET_CHAIN_ID,
     query: { enabled: Boolean(tokenAAddress && address && contractAddress) }
   })
+  useEffect(() => { if (allowance != null) log('read allowance', allowance) }, [allowance, log])
 
   const { writeContractAsync } = useWriteContract()
 
+  const hasAllowance = useMemo(() => {
+    if (!amountWei || allowance == null) return false
+    try {
+      return allowance >= amountWei
+    } catch {
+      return false
+    }
+  }, [allowance, amountWei])
+  useEffect(() => { if (amountWei != null) log('computed amountWei', amountWei) }, [amountWei, log])
+  useEffect(() => { log('computed hasAllowance', hasAllowance) }, [hasAllowance, log])
+  useEffect(() => { log('connection', { isConnected, chainId }) }, [isConnected, chainId, log])
+
+  async function handleApprove() {
+    try {
+      log('approve:start', { amountWei })
+      if (!isConnected) return
+      if (!tokenAAddress || !contractAddress) {
+        toast.error('Contract not configured')
+        log('approve:error:not-configured')
+        return
+      }
+      if (!amountWei || amountWei <= 0n) {
+        toast.error('Enter a valid amount > 0')
+        log('approve:error:invalid-amount')
+        return
+      }
+      setBusy(true)
+      toast.info('Approving tokenA... Confirm in wallet')
+      try {
+        log('approve:simulate')
+        const approveSim = await simulateContract(wagmiConfig, {
+          address: tokenAAddress,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [contractAddress, amountWei],
+          account: address
+        })
+        log('approve:send', approveSim.request)
+        const approveHash = await writeContractAsync(approveSim.request)
+        log('approve:hash', approveHash)
+        await waitForTransactionReceipt(wagmiConfig, { hash: approveHash, chainId })
+      } catch {
+        // Reset to 0 then set amount
+        log('approve:fallback:reset-0')
+        const resetSim = await simulateContract(wagmiConfig, {
+          address: tokenAAddress,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [contractAddress, 0n],
+          account: address
+        })
+        const resetHash = await writeContractAsync(resetSim.request)
+        log('approve:fallback:reset-0-hash', resetHash)
+        await waitForTransactionReceipt(wagmiConfig, { hash: resetHash, chainId })
+
+        log('approve:fallback:set-amount')
+        const setSim = await simulateContract(wagmiConfig, {
+          address: tokenAAddress,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [contractAddress, amountWei],
+          account: address
+        })
+        const setHash = await writeContractAsync(setSim.request)
+        log('approve:fallback:set-amount-hash', setHash)
+        await waitForTransactionReceipt(wagmiConfig, { hash: setHash, chainId })
+      }
+      await refetchAllowance()
+      toast.success('Approval confirmed')
+      log('approve:done')
+    } catch (err) {
+      const message = (err && err.message) || 'Approval failed'
+      toast.error(message)
+      log('approve:error', { message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleMigrate() {
     try {
+      log('migrate:start', { amountWei })
       if (!isConnected) return
       if (!contractAddress) {
         toast.error('Migration contract not configured')
+        log('migrate:error:not-configured')
         return
       }
       await refetchTokenA()
       if (!tokenAAddress) {
         toast.error('Could not read tokenA from contract')
+        log('migrate:error:no-tokenA')
         return
       }
       if (!amountWei || amountWei <= 0n) {
         toast.error('Enter a valid amount > 0')
+        log('migrate:error:invalid-amount')
         return
       }
       // Check user has enough Token A
       if (tokenAUserBal != null && tokenAUserBal < amountWei) {
         toast.error('Insufficient Token A balance for this amount')
+        log('migrate:error:insufficient-user-tokenA', { tokenAUserBal })
         return
       }
       // Check pool has enough Token B
       if (tokenBBalance != null && tokenBBalance < amountWei) {
         toast.error('Contract has insufficient Token B liquidity for this amount')
+        log('migrate:error:insufficient-tokenB', { tokenBBalance })
+        return
+      }
+      // Require prior approval step
+      if (!hasAllowance) {
+        toast.error('Please approve the amount first')
+        log('migrate:error:no-allowance')
         return
       }
       setBusy(true)
-      // Ensure allowance; auto-approve if needed
-      const latest = allowance ?? (await refetchAllowance())?.data ?? 0n
-      if (latest < amountWei) {
-        toast.info('Approving tokenA... Confirm in wallet')
-        try {
-          const approveSim = await simulateContract(wagmiConfig, {
-            address: tokenAAddress,
-            abi: ERC20_ABI,
-            functionName: 'approve',
-            args: [contractAddress, amountWei],
-            account: address
-          })
-          const approveHash = await writeContractAsync(approveSim.request)
-          await waitForTransactionReceipt(wagmiConfig, { hash: approveHash, chainId })
-          toast.success('Approval confirmed')
-        } catch {
-          // Fallback for tokens requiring resetting allowance to 0 first (e.g., USDT-style)
-          toast.info('Retrying approval (reset to 0 then set)')
-          const resetSim = await simulateContract(wagmiConfig, {
-            address: tokenAAddress,
-            abi: ERC20_ABI,
-            functionName: 'approve',
-            args: [contractAddress, 0n],
-            account: address
-          })
-          const resetHash = await writeContractAsync(resetSim.request)
-          await waitForTransactionReceipt(wagmiConfig, { hash: resetHash, chainId })
-
-          const setSim = await simulateContract(wagmiConfig, {
-            address: tokenAAddress,
-            abi: ERC20_ABI,
-            functionName: 'approve',
-            args: [contractAddress, amountWei],
-            account: address
-          })
-          const setHash = await writeContractAsync(setSim.request)
-          await waitForTransactionReceipt(wagmiConfig, { hash: setHash, chainId })
-          toast.success('Approval confirmed')
-        }
-      } else {
-        toast.info('Allowance sufficient, skipping approval')
-      }
 
       toast.info('Migrating... Confirm in wallet')
       let migrateHash
       try {
+        log('migrate:simulate')
         const migrateSim = await simulateContract(wagmiConfig, {
           address: contractAddress,
           abi: MIGRATION_ABI,
@@ -228,10 +306,12 @@ function App() {
           args: [amountWei],
           account: address
         })
+        log('migrate:send', migrateSim.request)
         migrateHash = await writeContractAsync(migrateSim.request)
       } catch {
         // Fallback: some RPCs revert on eth_call though on-chain send succeeds (e.g., gated flags in modifiers)
         toast.info('Submitting migrate without simulation...')
+        log('migrate:fallback:send-with-gas', { gas: FALLBACK_MIGRATE_GAS })
         migrateHash = await writeContractAsync({
           address: contractAddress,
           abi: MIGRATION_ABI,
@@ -240,11 +320,14 @@ function App() {
           gas: FALLBACK_MIGRATE_GAS
         })
       }
+      log('migrate:hash', migrateHash)
       await waitForTransactionReceipt(wagmiConfig, { hash: migrateHash, chainId })
       toast.success('Migration complete')
+      log('migrate:done')
     } catch (err) {
       const message = (err && err.message) || 'Transaction failed'
       toast.error(message)
+      log('migrate:error', { message })
     }
     finally {
       setBusy(false)
@@ -266,11 +349,18 @@ function App() {
 
         <AmountInput amount={amount} onChange={setAmount} symbol={tokenASymbol} />
 
-        <MigrateAction
-          onClick={handleMigrate}
-          busy={busy}
-          disabled={!isConnected || busy || !amountWei || (amountWei && amountWei <= 0n) || exceedsPool}
-        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ApproveAction
+            onClick={handleApprove}
+            busy={busy && !hasAllowance}
+            disabled={!isConnected || busy || !amountWei || (amountWei && amountWei <= 0n) || hasAllowance}
+          />
+          <MigrateAction
+            onClick={handleMigrate}
+            busy={busy && hasAllowance}
+            disabled={!isConnected || busy || !amountWei || (amountWei && amountWei <= 0n) || exceedsPool || !hasAllowance}
+          />
+        </div>
 
         <div className="grid gap-1 text-xs text-zinc-400">
           <div>Contract: {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}</div>
@@ -286,6 +376,45 @@ function App() {
 
       <Footer />
       <ToastContainer position="top-right" autoClose={4000} closeOnClick pauseOnHover theme="colored" />
+
+      <div className="mt-6">
+        <button
+          onClick={() => setDebugOpen((v) => !v)}
+          className="rounded-md border border-zinc-700 px-3 py-1 text-sm text-white"
+        >
+          {debugOpen ? 'Hide' : 'Show'} Debug
+        </button>
+      </div>
+
+      {debugOpen ? (
+        <div className="mt-3 grid gap-2 rounded-xl border border-zinc-800 p-4 text-xs text-zinc-300">
+          <div className="grid gap-1 md:grid-cols-2">
+            <div>ChainId: {chainId ?? '—'} (target {TARGET_CHAIN_ID})</div>
+            <div>Connected: {String(isConnected)}</div>
+            <div>Contract: {contractAddress}</div>
+            <div>Address: {address ?? '—'}</div>
+            <div>tokenA: {tokenAAddress ?? '—'}</div>
+            <div>tokenB: {tokenBAddress ?? '—'}</div>
+            <div>tokenA decimals: {tokenADecimals ?? '—'}</div>
+            <div>tokenB decimals: {tokenBDecimals ?? '—'}</div>
+            <div>user tokenA: {tokenAUserBalFormatted ?? '—'}</div>
+            <div>tokenB liquidity: {tokenBBalanceFormatted ?? '—'}</div>
+            <div>allowance: {allowance != null ? allowance.toString() : '—'}</div>
+            <div>amountWei: {amountWei != null ? amountWei.toString() : '—'}</div>
+            <div>hasAllowance: {String(hasAllowance)}</div>
+            <div>exceedsPool: {String(exceedsPool)}</div>
+          </div>
+          <div className="max-h-64 overflow-y-auto rounded-md border border-zinc-800 bg-black/40 p-2 font-mono">
+            {logs.length === 0 ? (
+              <div className="text-zinc-500">No logs yet</div>
+            ) : (
+              logs.map((l, i) => (
+                <div key={i}>{l}</div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
