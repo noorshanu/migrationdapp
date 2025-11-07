@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,100..900;1,100..900&display=swap');
+@import "tailwindcss";
+
+.font-archivo {
+  font-family: 'Archivo', sans-serif;
+}
+
+body {
+  font-family: 'Archivo', sans-serif;
+  background-color: #000;
+  color: #fff;
+}
+
+/* Hide number input spinners */
+/* Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
