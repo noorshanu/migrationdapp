@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { useAccount, useReadContract, useWriteContract, useConfig, useChainId } from 'wagmi'
 import { waitForTransactionReceipt, simulateContract } from 'wagmi/actions'
-import { parseUnits, formatUnits } from 'viem'
+import { parseUnits, } from 'viem'
 import { MIGRATION_ABI } from './abi/migration'
 import { ERC20_ABI } from './abi/erc20'
 import { ToastContainer, toast } from 'react-toastify'
@@ -137,23 +137,23 @@ function App() {
     return contractBalances?.tokenBBalance ?? contractBalances?.[1] ?? null
   }, [contractBalances])
 
-  const tokenBBalanceFormatted = useMemo(() => {
-    try {
-      if (tokenBBalance == null || tokenBDecimals == null) return null
-      return formatUnits(tokenBBalance, tokenBDecimals)
-    } catch {
-      return null
-    }
-  }, [tokenBBalance, tokenBDecimals])
+  // const tokenBBalanceFormatted = useMemo(() => {
+  //   try {
+  //     if (tokenBBalance == null || tokenBDecimals == null) return null
+  //     return formatUnits(tokenBBalance, tokenBDecimals)
+  //   } catch {
+  //     return null
+  //   }
+  // }, [tokenBBalance, tokenBDecimals])
 
-  const tokenAUserBalFormatted = useMemo(() => {
-    try {
-      if (tokenAUserBal == null || tokenADecimals == null) return null
-      return formatUnits(tokenAUserBal, tokenADecimals)
-    } catch {
-      return null
-    }
-  }, [tokenAUserBal, tokenADecimals])
+  // const tokenAUserBalFormatted = useMemo(() => {
+  //   try {
+  //     if (tokenAUserBal == null || tokenADecimals == null) return null
+  //     return formatUnits(tokenAUserBal, tokenADecimals)
+  //   } catch {
+  //     return null
+  //   }
+  // }, [tokenAUserBal, tokenADecimals])
 
   const exceedsPool = useMemo(() => {
     if (!amountWei || !tokenBBalance) return false
@@ -211,17 +211,14 @@ function App() {
       const ok = await ensureSepoliaNetwork()
       if (!ok) return
       if (!tokenAAddress || !contractAddress) {
-        toast.error('Contract not configured')
         log('approve:error:not-configured')
         return
       }
       if (!amountWei || amountWei <= 0n) {
-        toast.error('Enter a valid amount > 0')
         log('approve:error:invalid-amount')
         return
       }
       setBusy(true)
-      toast.info('Approving tokenA... Confirm in wallet')
       try {
         // Send approve directly (some tokens return no data on approve, simulation may error with '0x')
         log('approve:direct-send', { amountWei })
@@ -253,12 +250,11 @@ function App() {
         await waitForTransactionReceipt(wagmiConfig, { hash: setHash, chainId })
       }
       await refetchAllowance()
-      toast.success('Approval confirmed')
+      toast.success('Approved')
       log('approve:done')
-    } catch (err) {
-      const message = (err && err.message) || 'Approval failed'
-      toast.error(message)
-      log('approve:error', { message })
+    } catch {
+      toast.error('Approval failed')
+      log('approve:error')
     } finally {
       setBusy(false)
     }
@@ -271,36 +267,30 @@ function App() {
       const ok = await ensureSepoliaNetwork()
       if (!ok) return
       if (!contractAddress) {
-        toast.error('Migration contract not configured')
         log('migrate:error:not-configured')
         return
       }
       await refetchTokenA()
       if (!tokenAAddress) {
-        toast.error('Could not read tokenA from contract')
         log('migrate:error:no-tokenA')
         return
       }
       if (!amountWei || amountWei <= 0n) {
-        toast.error('Enter a valid amount > 0')
         log('migrate:error:invalid-amount')
         return
       }
       // Check user has enough Token A
       if (tokenAUserBal != null && tokenAUserBal < amountWei) {
-        toast.error('Insufficient Token A balance for this amount')
         log('migrate:error:insufficient-user-tokenA', { tokenAUserBal })
         return
       }
       // Check pool has enough Token B
       if (tokenBBalance != null && tokenBBalance < amountWei) {
-        toast.error('Contract has insufficient Token B liquidity for this amount')
         log('migrate:error:insufficient-tokenB', { tokenBBalance })
         return
       }
       // Require prior approval step
       if (!hasAllowance) {
-        toast.error('Please approve the amount first')
         log('migrate:error:no-allowance')
         return
       }
@@ -319,7 +309,6 @@ function App() {
       } catch (e) {
         const message = (e && e.message) || 'tokenA transferFrom blocked'
         log('preflight:tokenA.transferFrom FAILED', { message })
-        toast.error(`Token A transferFrom blocked: ${message}`)
         return
       }
       try {
@@ -335,12 +324,10 @@ function App() {
       } catch (e) {
         const message = (e && e.message) || 'tokenB transfer blocked'
         log('preflight:tokenB.transfer FAILED', { message })
-        toast.error(`Token B transfer blocked: ${message}`)
         return
       }
       setBusy(true)
 
-      toast.info('Migrating... Confirm in wallet')
       let migrateHash
       try {
         log('migrate:simulate')
@@ -355,7 +342,6 @@ function App() {
         migrateHash = await writeContractAsync(migrateSim.request)
       } catch {
         // Fallback: some RPCs revert on eth_call though on-chain send succeeds (e.g., gated flags in modifiers)
-        toast.info('Submitting migrate without simulation...')
         log('migrate:fallback:send-with-gas', { gas: FALLBACK_MIGRATE_GAS })
         migrateHash = await writeContractAsync({
           address: contractAddress,
@@ -367,12 +353,11 @@ function App() {
       }
       log('migrate:hash', migrateHash)
       await waitForTransactionReceipt(wagmiConfig, { hash: migrateHash, chainId })
-      toast.success('Migration complete')
+      toast.success('Migrated')
       log('migrate:done')
-    } catch (err) {
-      const message = (err && err.message) || 'Transaction failed'
-      toast.error(message)
-      log('migrate:error', { message })
+    } catch {
+      toast.error('Migration failed')
+      log('migrate:error')
     }
     finally {
       setBusy(false)
@@ -407,7 +392,7 @@ function App() {
           />
         </div>
 
-        <div className="grid gap-1 text-xs text-zinc-400">
+        {/* <div className="grid gap-1 text-xs text-zinc-400">
           <div>Contract: {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}</div>
           <div>Token A: {tokenAAddress ? `${tokenAAddress.slice(0, 6)}...${tokenAAddress.slice(-4)}` : '—'}</div>
           <div>Token B: {tokenBAddress ? `${tokenBAddress.slice(0, 6)}...${tokenBAddress.slice(-4)}` : '—'}</div>
@@ -416,7 +401,7 @@ function App() {
           {exceedsPool ? (
             <div className="text-amber-300">Amount exceeds Token B liquidity in pool. Reduce amount or fund contract.</div>
           ) : null}
-      </div>
+      </div> */}
       </div>
 
       <Footer />

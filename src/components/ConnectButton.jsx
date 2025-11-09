@@ -1,4 +1,5 @@
 import { useAccount } from 'wagmi'
+import { motion as Motion } from 'framer-motion'
 import { appKit } from '../lib/appkit'
 
 function truncate(addr) {
@@ -8,26 +9,21 @@ function truncate(addr) {
 
 export default function ConnectButton() {
   const { address, isConnected } = useAccount()
+  const connectedLabel = isConnected ? truncate(address) : 'Connect Wallet'
 
   return (
-    <button
+    <Motion.button
       onClick={() => appKit?.open?.()}
-      className="relative inline-flex items-center"
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="w-full bg-linear-to-r from-cyan-500 to-green-500 text-black px-4 py-3 rounded-xl font-semibold hover:from-cyan-600 hover:to-green-600 transition-all duration-200 flex items-center justify-center space-x-2 border border-green-400"
       aria-label="Connect wallet"
     >
-      <span className="absolute -left-3">
-        <span className="relative inline-flex h-5 w-5 items-center justify-center">
-          <span className="absolute inline-flex h-5 w-5 rounded-full border-2 border-white/80"></span>
-          <span className={`inline-flex h-3 w-3 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-zinc-500'}`}></span>
-        </span>
-      </span>
-
-      <span className="outline outline-2 outline-emerald-400 rounded-md p-1">
-        <span className="rounded-md border border-zinc-700 bg-black px-4 py-2 text-white font-semibold">
-          {isConnected ? truncate(address) : 'Connect Wallet'}
-        </span>
-      </span>
-    </button>
+      <div className="w-4 h-4 rounded-full border border-black flex items-center justify-center">
+        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-black' : 'bg-black/60'}`}></div>
+      </div>
+      <span>{connectedLabel}</span>
+    </Motion.button>
   )
 }
 
