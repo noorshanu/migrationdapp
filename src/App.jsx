@@ -188,10 +188,28 @@ function App() {
   useEffect(() => { log('computed hasAllowance', hasAllowance) }, [hasAllowance, log])
   useEffect(() => { log('connection', { isConnected, chainId }) }, [isConnected, chainId, log])
 
+  async function ensureSepoliaNetwork() {
+    if (chainId === TARGET_CHAIN_ID) return true
+    try {
+      // Try to request network switch if supported
+      await (typeof window !== 'undefined' ? window.ethereum?.request?.({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0xAA36A7' }] // Sepolia
+      }) : Promise.reject(new Error('No injected provider')))
+      return true
+    } catch (err) {
+      toast.error('Please switch your wallet to Sepolia and retry')
+      log('network:switch-failed', { message: err?.message })
+      return false
+    }
+  }
+
   async function handleApprove() {
     try {
       log('approve:start', { amountWei })
       if (!isConnected) return
+      const ok = await ensureSepoliaNetwork()
+      if (!ok) return
       if (!tokenAAddress || !contractAddress) {
         toast.error('Contract not configured')
         log('approve:error:not-configured')
@@ -250,6 +268,8 @@ function App() {
     try {
       log('migrate:start', { amountWei })
       if (!isConnected) return
+      const ok = await ensureSepoliaNetwork()
+      if (!ok) return
       if (!contractAddress) {
         toast.error('Migration contract not configured')
         log('migrate:error:not-configured')
