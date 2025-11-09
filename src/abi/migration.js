@@ -1,87 +1,25 @@
 export const MIGRATION_ABI = [
-  // Custom errors (needed for viem to decode revert reasons)
-  {
-    type: 'error',
-    name: 'ETHTransferFailed',
-    inputs: []
-  },
-  {
-    type: 'error',
-    name: 'InsufficientETHBalance',
-    inputs: [
-      { name: 'required', type: 'uint256' },
-      { name: 'available', type: 'uint256' }
-    ]
-  },
-  {
-    type: 'error',
-    name: 'InsufficientTokenBBalance',
-    inputs: [
-      { name: 'required', type: 'uint256' },
-      { name: 'available', type: 'uint256' }
-    ]
-  },
-  {
-    type: 'error',
-    name: 'OwnableInvalidOwner',
-    inputs: [{ name: 'owner', type: 'address' }]
-  },
-  {
-    type: 'error',
-    name: 'OwnableUnauthorizedAccount',
-    inputs: [{ name: 'account', type: 'address' }]
-  },
-  {
-    type: 'error',
-    name: 'SafeERC20FailedOperation',
-    inputs: [{ name: 'token', type: 'address' }]
-  },
-  {
-    type: 'error',
-    name: 'TokensMustDiffer',
-    inputs: []
-  },
-  {
-    type: 'error',
-    name: 'ZeroAddress',
-    inputs: []
-  },
-  {
-    type: 'error',
-    name: 'ZeroAmount',
-    inputs: []
-  },
-  {
-    type: 'function',
-    name: 'tokenA',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'address' }]
-  },
-  {
-    type: 'function',
-    name: 'tokenB',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'address' }]
-  },
-  {
-    type: 'function',
-    name: 'contractBalances',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [
-      { name: 'tokenABalance', type: 'uint256' },
-      { name: 'tokenBBalance', type: 'uint256' }
-    ]
-  },
-  {
-    type: 'function',
-    name: 'migrate',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'amount', type: 'uint256' }],
-    outputs: []
-  }
+  {"inputs":[{"internalType":"address","name":"_tokenA","type":"address"},{"internalType":"address","name":"_tokenB","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+  {"inputs":[],"name":"ETHTransferFailed","type":"error"},
+  {"inputs":[{"internalType":"uint256","name":"required","type":"uint256"},{"internalType":"uint256","name":"available","type":"uint256"}],"name":"InsufficientETHBalance","type":"error"},
+  {"inputs":[{"internalType":"uint256","name":"required","type":"uint256"},{"internalType":"uint256","name":"available","type":"uint256"}],"name":"InsufficientTokenBBalance","type":"error"},
+  {"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"OwnableInvalidOwner","type":"error"},
+  {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"OwnableUnauthorizedAccount","type":"error"},
+  {"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"SafeERC20FailedOperation","type":"error"},
+  {"inputs":[],"name":"TokensMustDiffer","type":"error"},
+  {"inputs":[],"name":"ZeroAddress","type":"error"},
+  {"inputs":[],"name":"ZeroAmount","type":"error"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"token","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"AdminTransfer","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"token","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Burned","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Migrated","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},
+  {"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"adminTransfer","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"burnToken","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"contractBalances","outputs":[{"internalType":"uint256","name":"tokenABalance","type":"uint256"},{"internalType":"uint256","name":"tokenBBalance","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"migrate","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"tokenA","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"tokenB","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"}
 ]
-
-

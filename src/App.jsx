@@ -37,7 +37,7 @@ function App() {
     }
   }, [])
 
-  const [contractAddress] = useState('0xdb352e55DaAd68B632554410F2D392263fF22b06')
+  const [contractAddress] = useState('0x6189955C71682aBE37CC24da51A6D55EfCD5Cf3c')
   const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
   const [selectedToken, setSelectedToken] = useState('tokenA')
@@ -291,6 +291,40 @@ function App() {
       if (!hasAllowance) {
         toast.error('Please approve the amount first')
         log('migrate:error:no-allowance')
+        return
+      }
+      // Preflight simulations to pinpoint token-side reverts
+      try {
+        log('preflight:tokenA.transferFrom simulate', { from: address, to: contractAddress, amountWei })
+        await simulateContract(wagmiConfig, {
+          address: tokenAAddress,
+          abi: ERC20_ABI,
+          functionName: 'transferFrom',
+          args: [address, contractAddress, amountWei],
+          // simulate as if called by migration contract
+          account: contractAddress,
+          chainId: TARGET_CHAIN_ID
+        })
+      } catch (e) {
+        const message = (e && e.message) || 'tokenA transferFrom blocked'
+        log('preflight:tokenA.transferFrom FAILED', { message })
+        toast.error(`Token A transferFrom blocked: ${message}`)
+        return
+      }
+      try {
+        log('preflight:tokenB.transfer simulate', { to: address, amountWei })
+        await simulateContract(wagmiConfig, {
+          address: tokenBAddress,
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [address, 1n],
+          account: contractAddress,
+          chainId: TARGET_CHAIN_ID
+        })
+      } catch (e) {
+        const message = (e && e.message) || 'tokenB transfer blocked'
+        log('preflight:tokenB.transfer FAILED', { message })
+        toast.error(`Token B transfer blocked: ${message}`)
         return
       }
       setBusy(true)
