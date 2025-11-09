@@ -411,16 +411,16 @@ function App() {
       <Footer />
       <ToastContainer position="top-right" autoClose={4000} closeOnClick pauseOnHover theme="colored" />
 
-      <div className="mt-6">
+      {/* <div className="mt-6">
         <button
           onClick={() => setDebugOpen((v) => !v)}
           className="rounded-md border border-zinc-700 px-3 py-1 text-sm text-white"
         >
           {debugOpen ? 'Hide' : 'Show'} Debug
         </button>
-      </div>
+      </div> */}
 
-      {debugOpen ? (
+    {/*  {debugOpen ? (
         <div className="mt-3 grid gap-2 rounded-xl border border-zinc-800 p-4 text-xs text-zinc-300">
           <div className="grid gap-1 md:grid-cols-2">
             <div>ChainId: {chainId ?? '—'} (target {TARGET_CHAIN_ID})</div>
@@ -448,7 +448,7 @@ function App() {
             )}
           </div>
         </div>
-      ) : null}
+      ) : null} */}
     </div>
   )
 }
