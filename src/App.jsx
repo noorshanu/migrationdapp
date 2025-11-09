@@ -22,8 +22,8 @@ function App() {
   const TARGET_CHAIN_ID = 11155111 // Sepolia
 
   // Debug logging
-  const [debugOpen, setDebugOpen] = useState(true)
-  const [logs, setLogs] = useState([])
+  // Debug state (UI hidden; logs kept for console output)
+  const [, setLogs] = useState([])
   const jsonReplacer = (key, value) => (typeof value === 'bigint' ? value.toString() : value)
   const log = useCallback((message, data) => {
     const time = new Date().toISOString()
@@ -205,42 +205,33 @@ function App() {
       setBusy(true)
       toast.info('Approving tokenA... Confirm in wallet')
       try {
-        log('approve:simulate')
-        const approveSim = await simulateContract(wagmiConfig, {
+        // Send approve directly (some tokens return no data on approve, simulation may error with '0x')
+        log('approve:direct-send', { amountWei })
+        const approveHash = await writeContractAsync({
           address: tokenAAddress,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [contractAddress, amountWei],
-          account: address
+          args: [contractAddress, amountWei]
         })
-        log('approve:send', approveSim.request)
-        const approveHash = await writeContractAsync(approveSim.request)
         log('approve:hash', approveHash)
         await waitForTransactionReceipt(wagmiConfig, { hash: approveHash, chainId })
       } catch {
-        // Reset to 0 then set amount
-        log('approve:fallback:reset-0')
-        const resetSim = await simulateContract(wagmiConfig, {
+        // Reset to 0 then set amount, sent directly
+        log('approve:fallback:reset-0 direct-send')
+        const resetHash = await writeContractAsync({
           address: tokenAAddress,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [contractAddress, 0n],
-          account: address
+          args: [contractAddress, 0n]
         })
-        const resetHash = await writeContractAsync(resetSim.request)
-        log('approve:fallback:reset-0-hash', resetHash)
         await waitForTransactionReceipt(wagmiConfig, { hash: resetHash, chainId })
-
-        log('approve:fallback:set-amount')
-        const setSim = await simulateContract(wagmiConfig, {
+        log('approve:fallback:set-amount direct-send', { amountWei })
+        const setHash = await writeContractAsync({
           address: tokenAAddress,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [contractAddress, amountWei],
-          account: address
+          args: [contractAddress, amountWei]
         })
-        const setHash = await writeContractAsync(setSim.request)
-        log('approve:fallback:set-amount-hash', setHash)
         await waitForTransactionReceipt(wagmiConfig, { hash: setHash, chainId })
       }
       await refetchAllowance()
@@ -449,7 +440,7 @@ function App() {
           </div>
         </div>
       ) : null} */}
-    </div>
+      </div>
   )
 }
 
