@@ -13,8 +13,8 @@ const Footer = () => {
           <div className="col-span-12 md:col-span-6 md:justify-self-end py-6 text-right">
             <p className="text-base mb-3 text-gray-200">Available Soon On</p>
             <div className="flex md:justify-end gap-3">
-              <img src="/images/google.png" alt="Google Play" className="h-8 object-contain" />
-              <img src="/images/app.png" alt="App Store" className="h-8 object-contain" />
+              <img src="/google.png" alt="Google Play" className="h-8 object-contain" />
+              <img src="/app.png" alt="App Store" className="h-8 object-contain" />
             </div>
           </div>
         </div>
@@ -36,16 +36,16 @@ const Footer = () => {
               <span className="text-emerald-300 font-medium">// Socials</span>
               <div className="flex items-center gap-4">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-500">
-                  <img src="/images/xxx.png" alt="X" className="h-4" />
+                  <img src="/xxx.png" alt="X" className="h-4" />
                 </span>
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-500">
-                  <img src="/images/tele.png" alt="Telegram" className="h-4" />
+                  <img src="/tele.png" alt="Telegram" className="h-4" />
                 </span>
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-500">
-                  <img src="/images/media.png" alt="Medium" className="h-4" />
+                  <img src="/media.png" alt="Medium" className="h-4" />
                 </span>
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-500">
-                  <img src="/images/insta.png" alt="Instagram" className="h-4" />
+                  <img src="/insta.png" alt="Instagram" className="h-4" />
                 </span>
               </div>
             </div>
